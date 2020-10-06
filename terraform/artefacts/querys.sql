@@ -52,7 +52,7 @@ FROM `testeengenharia.tubes.tb_quoteprice` as a;
 ################################################################################################
 
 ## Criação da fato quote price ##
-
+drop table if exists `testeengenharia.dw_tubes.tb_fact_quotePrice`;
 create table `testeengenharia.dw_tubes.tb_fact_quotePrice`
 as
 select 
@@ -69,6 +69,8 @@ left join `testeengenharia.dw_tubes.tb_dim_tube_assembly` as ta on qp.tube_assem
 left join `testeengenharia.dw_tubes.tb_dim_supplier` as s on qp.supplier = s.supplier
 left join `testeengenharia.dw_tubes.tb_dim_bracket_pricing` as bp on qp.bracket_pricing = bp.bracket_pricing
 group by qp.quote_date,ta.id,s.id,bp.id
+order by qp.quote_date 
+limit 1000
 
 
 

@@ -322,27 +322,27 @@ resource "google_bigquery_table" "tb_dim_date" {
   },
   {
     "name": "day",
-    "type": "string",
+    "type": "INT64",
     "mode": "NULLABLE"
   }, 
   {
     "name": "dayweek",
-    "type": "string",
+    "type": "INT64",
     "mode": "NULLABLE"
   },
   {
     "name": "month",
-    "type": "string",
+    "type": "INT64",
     "mode": "NULLABLE"
   },
   {
     "name": "quarter",
-    "type": "string",
+    "type": "INT64",
     "mode": "NULLABLE"
   },
   {
     "name": "year",
-    "type": "string",
+    "type": "INT64",
     "mode": "NULLABLE"
   }
   ]
@@ -493,24 +493,67 @@ resource "google_dataflow_job" "ps-to-bq-comp_boss" {
   }
 }
 
+resource "google_bigquery_data_transfer_config" "job1" {
 
-resource "google_bigquery_job" "job1" {
-  job_id     = "job_dim_date"
+  display_name           = "create_dim_date"
+  data_source_id         = "scheduled_query"
+  schedule               = "every 1 hours from 08:00 to 20:00"
+  destination_dataset_id = google_bigquery_dataset.dw.dataset_id
+  params = {
+    destination_table_name_template = google_bigquery_table.tb_dim_date.table_id
+    write_disposition               = "WRITE_APPEND"
+    query                           = "SELECT a.quote_date as date, EXTRACT(DAY FROM a.quote_date) as day, EXTRACT(DAYOFWEEK from a.quote_date) as dayWeek, EXTRACT(MONTH FROM a.quote_date) as month, EXTRACT(quarter FROM a.quote_date) as quarter,EXTRACT(year FROM a.quote_date) as year  FROM `testeengenharia.tubes.tb_quoteprice` as a"
+  }
+}
 
-  query {
-    query = "SELECT a.quote_date as date, EXTRACT(DAY FROM a.quote_date) as day, EXTRACT(DAYOFWEEK from a.quote_date) as dayWeek, EXTRACT(MONTH FROM a.quote_date) as month, EXTRACT(quarter FROM a.quote_date) as quarter,EXTRACT(year FROM a.quote_date) as year  FROM `testeengenharia.tubes.tb_quoteprice` as a"
+resource "google_bigquery_data_transfer_config" "job2" {
 
-    destination_table {
-      project_id = "${var.project_id}"
-      dataset_id = google_bigquery_dataset.dw.dataset_id
-      table_id   = google_bigquery_table.tb_dim_date.table_id
-    }
+  display_name           = "create_dim_tube_assembly"
+  data_source_id         = "scheduled_query"
+  schedule               = "every 1 hours from 08:00 to 20:00"
+  destination_dataset_id = google_bigquery_dataset.dw.dataset_id
+  params = {
+    destination_table_name_template = google_bigquery_table.tb_dim_tube_assembly.table_id
+    write_disposition               = "WRITE_APPEND"
+    query                           = "select distinct   a.tube_assembly_id,  ROW_NUMBER() OVER() as id FROM `testeengenharia.tubes.tb_quoteprice` as a"
+  }
+}
 
-    allow_large_results = true
-    flatten_results = true
+resource "google_bigquery_data_transfer_config" "job3" {
 
-    script_options {
-      key_result_statement = "LAST"
-    }
+  display_name           = "create_dim_supplier"
+  data_source_id         = "scheduled_query"
+  schedule               = "every 1 hours from 08:00 to 20:00"
+  destination_dataset_id = google_bigquery_dataset.dw.dataset_id
+  params = {
+    destination_table_name_template = google_bigquery_table.tb_dim_supplier.table_id
+    write_disposition               = "WRITE_APPEND"
+    query                           = "select distinct   a.supplier,  ROW_NUMBER() OVER() as id FROM `testeengenharia.tubes.tb_quoteprice` as a"
+  }
+}
+
+resource "google_bigquery_data_transfer_config" "job4" {
+
+  display_name           = "create_dim_bracket_pricing"
+  data_source_id         = "scheduled_query"
+  schedule               = "every 1 hours from 08:00 to 20:00"
+  destination_dataset_id = google_bigquery_dataset.dw.dataset_id
+  params = {
+    destination_table_name_template = google_bigquery_table.tb_dim_bracket_pricing.table_id
+    write_disposition               = "WRITE_APPEND"
+    query                           = "select distinct   a.bracket_pricing,  ROW_NUMBER() OVER() as id FROM `testeengenharia.tubes.tb_quoteprice` as a"
+  }
+}
+
+resource "google_bigquery_data_transfer_config" "job5" {
+
+  display_name           = "create_fact_quotePrice"
+  data_source_id         = "scheduled_query"
+  schedule               = "every 1 hours from 08:00 to 20:00"
+  destination_dataset_id = google_bigquery_dataset.dw.dataset_id
+  params = {
+    destination_table_name_template = google_bigquery_table.tb_fact_quotePrice.table_id
+    write_disposition               = "WRITE_APPEND"
+    query                           = "select qp.quote_date	,ta.id as idtubeAssembly,s.id as idSupplier,bp.id as idBracketPrice,sum(qp.annual_usage) as AnnualUsage,sum(qp.min_order_quantity) as MinOrderQuantity,sum(qp.quantity) as Quantity,sum(qp.cost) as cost from `testeengenharia.tubes.tb_quoteprice` as qp left join `testeengenharia.dw_tubes.tb_dim_tube_assembly` as ta on qp.tube_assembly_id	= ta.tube_assembly_id left join `testeengenharia.dw_tubes.tb_dim_supplier` as s on qp.supplier = s.supplier left join `testeengenharia.dw_tubes.tb_dim_bracket_pricing` as bp on qp.bracket_pricing = bp.bracket_pricing group by qp.quote_date,ta.id,s.id,bp.id"
   }
 }
