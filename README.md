@@ -1,6 +1,6 @@
 # Deploy infra as a code com terraform e Ingestão de dados no bigQuery atraves de cloud Functions, Pub/Sub e Dataflow
 
-![alt text](https://github.com/pradovalmur/engenhariadotz2/blob/main/projeto%20engenharia%20dotz.png
+![alt text](https://github.com/pradovalmur/engenhariadotz2/blob/main/projeto%20engenharia%20dotz.png)
 
 ## Etapa 1
 
